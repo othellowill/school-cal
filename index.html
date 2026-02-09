@@ -27,6 +27,8 @@
     <button class="btn-submit" onclick="loginAction(false)">ログイン</button>
     <hr>
     <button onclick="showView('view-setup')" style="background:none; border:none; text-decoration:underline; color:#666; font-size:14px;">新規団体を設立する</button>
+    <br><br>
+    <button onclick="showView('view-admin-login')" style="font-size:12px; background:#eee; border:none; padding:5px; border-radius:5px;">管理者の方はこちら</button>
   </div>
 
   <div id="view-setup" class="hidden">
@@ -38,13 +40,22 @@
     <button onclick="showView('view-start')">戻る</button>
   </div>
 
+  <div id="view-admin-login" class="hidden">
+    <h3>⚙️ 管理者ログイン</h3>
+    <input type="text" id="admin-login-name" placeholder="団体名">
+    <input type="password" id="admin-login-pass" placeholder="管理者パスワード">
+    <button class="btn-submit" onclick="loginAction(true)" style="background:var(--admin);">管理者としてログイン</button>
+    <button onclick="showView('view-start')">戻る</button>
+  </div>
+
   <div id="view-calendar" class="hidden">
     <h3 id="group-title" style="margin-bottom:5px;"></h3>
+    <div id="admin-mode-badge" class="hidden" style="color:red; font-size:12px; margin-bottom:10px;">【管理者モード：全削除権限あり】</div>
     <div class="card">
       <h4 style="margin:0; text-align:left; font-size:14px;">予定を追加</h4>
       <input type="date" id="t-date">
       <input type="text" id="t-title" placeholder="タイトル">
-      <input type="password" id="t-delpass" placeholder="削除用パスワード">
+      <input type="password" id="t-delpass" placeholder="個別の削除用パスワード">
       <button class="btn-submit" onclick="addTask()">追加して全員に同期</button>
     </div>
     <div class="card" style="padding:10px;"><div class="cal-wrapper" id="cal-grid"></div></div>
@@ -53,12 +64,12 @@
   </div>
 
 <script>
-  // クラウド接続情報
   const BIN_ID = "6989dd4bae596e708f1d842e";
   const API_KEY = "$2a$10$vOIMxpQkFmMIiTKTr5YlSuw1qB4Qrq3V7S51cnS9Q6b6v3K9rcKrK"; 
 
   let allData = {};
   let currentGroup = null;
+  let isAdminMode = false;
 
   async function syncFromCloud() {
     try {
@@ -93,17 +104,20 @@
     showView('view-start');
   }
 
-  async function loginAction() {
-    const name = document.getElementById('login-name').value;
-    const pass = document.getElementById('login-pass').value;
+  async function loginAction(isOpLogin) {
+    const name = isOpLogin ? document.getElementById('admin-login-name').value : document.getElementById('login-name').value;
+    const pass = isOpLogin ? document.getElementById('admin-login-pass').value : document.getElementById('login-pass').value;
+    
     await syncFromCloud();
     const g = allData[name];
-    if(g && g.gPass === pass) {
+    if(g && (isOpLogin ? g.oPass === pass : g.gPass === pass)) {
       currentGroup = g;
+      isAdminMode = isOpLogin;
       document.getElementById('group-title').innerText = name + " のカレンダー";
+      document.getElementById('admin-mode-badge').className = isAdminMode ? "" : "hidden";
       renderUI();
       showView('view-calendar');
-    } else { alert("ログイン失敗"); }
+    } else { alert("ログイン情報が正しくありません"); }
   }
 
   async function addTask() {
@@ -116,19 +130,39 @@
     await syncToCloud();
     currentGroup = allData[currentGroup.name];
     renderUI();
+    document.getElementById('t-title').value = "";
+  }
+
+  async function deleteTask(taskId) {
+    const task = currentGroup.tasks.find(t => t.id === taskId);
+    if(!isAdminMode) {
+      const p = prompt("削除パスワードを入力してください");
+      if(p !== task.delPass) return alert("パスワードが違います");
+    }
+    if(!confirm("削除しますか？")) return;
+    await syncFromCloud();
+    allData[currentGroup.name].tasks = allData[currentGroup.name].tasks.filter(t => t.id !== taskId);
+    await syncToCloud();
+    currentGroup = allData[currentGroup.name];
+    renderUI();
   }
 
   function renderUI() {
     const grid = document.getElementById('cal-grid');
     grid.innerHTML = '<div class="cal-label">日</div><div class="cal-label">月</div><div class="cal-label">火</div><div class="cal-label">水</div><div class="cal-label">木</div><div class="cal-label">金</div><div class="cal-label">土</div>';
     for(let i=1; i<=31; i++) grid.innerHTML += `<div class="cal-day" id="cal-day-${i}">${i}</div>`;
+    
     const list = document.getElementById('task-list');
     list.innerHTML = "";
-    currentGroup.tasks.forEach(t => {
-      list.innerHTML += `<div class="task">${t.date}: <b>${t.title}</b></div>`;
+    currentGroup.tasks.sort((a,b)=>new Date(a.date)-new Date(b.date)).forEach(t => {
+      list.innerHTML += `<div class="task">
+        <div style="font-size:12px; color:#007bff;">${t.date}</div>
+        <b>${t.title}</b>
+        <div style="text-align:right;"><button class="btn-danger" onclick="deleteTask(${t.id})">削除</button></div>
+      </div>`;
       const d = new Date(t.date);
       const day = document.getElementById('cal-day-'+d.getDate());
-      if(day) day.innerHTML += `<div class="has-task-mark"></div>`;
+      if(day && !day.querySelector('.has-task-mark')) day.innerHTML += `<div class="has-task-mark"></div>`;
     });
   }
 
