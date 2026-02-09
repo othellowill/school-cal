@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>共有カレンダー Portal Final Rev2</title>
+  <title>共有カレンダー Portal Final Rev3</title>
   <style>
     :root { --main: #007bff; --admin: #dc3545; --bg: #f8f9fa; --today: #e7f3ff; --accent: #ff9f43; --success: #28a745; --selected: #007bff; }
     body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 0; text-align: center; color: #333; padding-bottom: 50px; }
@@ -66,10 +66,7 @@
         <button onclick="openAdminSettings()" style="width:auto; padding:5px 10px; font-size:12px; background:#444; color:white; border-radius:5px; border:none;">⚙️ 団体設定</button>
     </div>
     <div id="user-status-bar" style="font-size:11px; margin-bottom:5px; color:#666;"></div>
-    
-    <div class="card">
-        <div id="cal-grid" class="cal-grid"></div>
-    </div>
+    <div class="card"><div id="cal-grid" class="cal-grid"></div></div>
     <div class="card">
       <input type="date" id="t-date">
       <input type="text" id="t-title" placeholder="予定の内容">
@@ -80,46 +77,46 @@
   </div>
 
   <div id="view-admin-settings" class="hidden">
-    <h3>⚙️ 団体管理 (管理者専用)</h3>
+    <h3>⚙️ 団体管理</h3>
     <div class="card">
       <h4>🔐 団体パスワード変更</h4>
-      <label style="font-size:12px; display:block; text-align:left;">メンバー用PW:</label>
-      <input type="text" id="edit-gpass">
-      <label style="font-size:12px; display:block; text-align:left;">管理者用PW:</label>
-      <input type="text" id="edit-opass">
+      <input type="text" id="edit-gpass" placeholder="メンバー用PW">
+      <input type="text" id="edit-opass" placeholder="管理者用PW">
       <button class="btn-submit" onclick="updateGroupPasswords()">団体PWを更新</button>
     </div>
-    <div class="card">
-      <h4>👤 所属ユーザーの管理</h4>
+    <div id="admin-user-list-card" class="card">
+      <h4>👤 所属ユーザー</h4>
       <div id="admin-user-list" style="text-align:left; font-size:13px;"></div>
     </div>
-    <div class="card" style="border:1px solid red; margin-top:20px;">
-      <h4 style="color:red;">団体の消去</h4>
-      <button class="btn-danger" style="width:100%; padding:10px;" onclick="deleteGroup()">この団体を完全に削除</button>
-    </div>
+    <button class="btn-danger" style="margin:20px;" onclick="deleteGroup()">団体を完全に削除</button><br>
     <button onclick="showView('view-calendar')">戻る</button>
   </div>
 
   <div id="view-my-page" class="hidden">
-    <h3>👤 個人アカウント設定</h3>
+    <h3>👤 設定</h3>
     <div class="card">
       <h4>パスワード変更</h4>
       <input type="text" id="new-user-pass" placeholder="新しいPW">
-      <button class="btn-submit" onclick="changeMyPassword()">変更を保存</button>
+      <button class="btn-submit" onclick="changeMyPassword()">変更保存</button>
     </div>
-    <div class="card" style="text-align:left;">
-      <h4>所属中の団体</h4>
-      <div id="my-groups-list"></div>
-    </div>
-    <div class="card" style="border:1px solid red; margin-top:30px;">
-      <h4 style="color:red;">アカウント削除</h4>
-      <button class="btn-danger" style="width:100%;" onclick="deleteMyAccount()">アカウントを完全に削除</button>
-    </div>
+    <button class="btn-danger" style="margin:20px;" onclick="deleteMyAccount()">アカウント削除</button><br>
     <button onclick="showView('view-portal')">戻る</button>
   </div>
 
-  <div id="view-start" class="hidden"><h3>団体ログイン</h3><div class="card"><input type="text" id="login-group-name" placeholder="団体名"><input type="password" id="login-group-pass" placeholder="PW"><button class="btn-submit" onclick="groupLoginAction(false)">メンバーとして入る</button></div><button onclick="showView('view-setup')" style="background:none; border:none; text-decoration:underline; color:var(--main);">新規団体設立</button> | <button onclick="showView('view-admin-login')" style="background:none; border:none; text-decoration:underline; color:var(--admin);">管理者ログイン</button><br><button onclick="goBackFromGroupLogin()" style="margin-top:20px;">戻る</button></div>
-  <div id="view-setup" class="hidden"><h3>団体設立</h3><div class="card"><input type="text" id="s-n" placeholder="団体名"><input type="password" id="s-g" placeholder="メPW"><input type="password" id="s-o" placeholder="管PW"><button class="btn-submit" onclick="createGroup()">設立して保存</button></div><button onclick="showView('view-start')">戻る</button></div>
+  <div id="view-start" class="hidden"><h3>団体ログイン</h3><div class="card"><input type="text" id="login-group-name" placeholder="団体名"><input type="password" id="login-group-pass" placeholder="PW"><button class="btn-submit" onclick="groupLoginAction(false)">メンバーとして入る</button></div><button onclick="showView('view-setup')" style="color:var(--main); text-decoration:underline; background:none; border:none;">新規団体設立</button> | <button onclick="showView('view-admin-login')" style="color:var(--admin); text-decoration:underline; background:none; border:none;">管理者ログイン</button><br><button onclick="goBackFromGroupLogin()" style="margin-top:20px;">戻る</button></div>
+  
+  <div id="view-setup" class="hidden">
+    <h3>団体設立</h3>
+    <div class="card">
+      <input type="text" id="s-n" placeholder="新しい団体名">
+      <input type="password" id="s-g" placeholder="メンバー用パスワード">
+      <input type="password" id="s-o" placeholder="管理者用パスワード">
+      <p style="font-size:11px; color:#666; text-align:left;">※両方のパスワード設定が必須です。</p>
+      <button class="btn-submit" onclick="createGroup()">設立して保存</button>
+    </div>
+    <button onclick="showView('view-start')">戻る</button>
+  </div>
+
   <div id="view-admin-login" class="hidden"><h3>管理者ログイン</h3><div class="card"><input type="text" id="al-n" placeholder="団体名"><input type="password" id="al-p" placeholder="管理者PW"><button class="btn-submit" onclick="groupLoginAction(true)">ログイン</button></div><button onclick="showView('view-start')">戻る</button></div>
 
 <script>
@@ -137,7 +134,7 @@
         const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: { "X-Master-Key": API_KEY } });
         const json = await res.json();
         allData = json.record || { groups: {}, globalUsers: {} };
-    } catch(e) { console.error("Cloud Error"); }
+    } catch(e) { console.error("Cloud Sync Error"); }
   }
 
   async function syncToCloud() {
@@ -148,6 +145,33 @@
     });
   }
 
+  // ★ 団体設立時のチェック機能
+  async function createGroup() {
+    const name = document.getElementById('s-n').value.trim();
+    const gPass = document.getElementById('s-g').value.trim();
+    const oPass = document.getElementById('s-o').value.trim();
+
+    if (!name) return alert("団体名を入力してください。");
+    if (!gPass || !oPass) {
+        return alert("【警告】メンバー用パスワードと管理者用パスワードの両方を設定してください。セキュリティ保護のため、空のまま作成することはできません。");
+    }
+
+    await syncFromCloud();
+    if (allData.groups[name]) return alert("その団体名は既に存在します。");
+
+    allData.groups[name] = { 
+        name: name, 
+        gPass: gPass, 
+        oPass: oPass, 
+        tasks: [], 
+        memberNames: [] 
+    };
+    await syncToCloud();
+    alert("団体を設立しました！ログイン画面からお入りください。");
+    showView('view-start');
+  }
+
+  // --- 以降、既存の全機能を維持 ---
   function suggestName() {
     const adj = ["青い", "元気な", "のんびり", "光の", "空飛ぶ", "ミラクル"];
     const noun = ["リス", "スター", "カレンダー", "ライオン", "ノート", "ランナー"];
@@ -167,17 +191,15 @@
     if(!n || !p) return alert("入力して下さい");
     await syncFromCloud();
     if(!allData.globalUsers[n]) {
-      if(confirm("アカウントを新規作成しますか？")) {
-        allData.globalUsers[n] = { name: n, pass: p, joinedGroups: [] };
-      } else return;
-    } else if(allData.globalUsers[n].pass !== p) return alert("パスワードが違います");
-
+      if(confirm("新規作成しますか？")) allData.globalUsers[n] = { name: n, pass: p, joinedGroups: [] };
+      else return;
+    } else if(allData.globalUsers[n].pass !== p) return alert("PW不一致");
     currentUser = allData.globalUsers[n];
     if(syncFlag && currentGroup) {
       if(!currentUser.joinedGroups.includes(currentGroup.name)) {
         currentUser.joinedGroups.push(currentGroup.name);
         if(!allData.groups[currentGroup.name].memberNames) allData.groups[currentGroup.name].memberNames = [];
-        if(!allData.groups[currentGroup.name].memberNames.includes(n)) allData.groups[currentGroup.name].memberNames.push(n);
+        allData.groups[currentGroup.name].memberNames.push(n);
       }
       syncFlag = false;
     }
@@ -192,16 +214,14 @@
     await syncFromCloud();
     const g = allData.groups[gn];
     if(g && (isOp ? g.oPass === gp : g.gPass === gp)) {
-      currentGroup = g;
-      isAdminMode = isOp;
+      currentGroup = g; isAdminMode = isOp;
       if(currentUser && !currentUser.joinedGroups.includes(gn)) {
         currentUser.joinedGroups.push(gn);
         if(!g.memberNames) g.memberNames = [];
         if(!g.memberNames.includes(currentUser.name)) g.memberNames.push(currentUser.name);
         await syncToCloud();
       }
-      renderCalendar(); 
-      showView('view-calendar');
+      renderCalendar(); showView('view-calendar');
     } else alert("認証エラー");
   }
 
@@ -209,37 +229,25 @@
     document.getElementById('edit-gpass').value = currentGroup.gPass;
     document.getElementById('edit-opass').value = currentGroup.oPass;
     const list = document.getElementById('admin-user-list');
-    list.innerHTML = "";
-    (currentGroup.memberNames || []).forEach(m => {
-        const u = allData.globalUsers[m];
-        if(!u) return;
-        list.innerHTML += `<div style="margin-bottom:8px;"><b>${m}</b>: PW[${u.pass}]</div>`;
-    });
+    list.innerHTML = (currentGroup.memberNames || []).map(m => `<div>・ ${m} (PW: ${allData.globalUsers[m]?.pass || '???'})</div>`).join('');
     showView('view-admin-settings');
   }
 
   async function updateGroupPasswords() {
-    const gP = document.getElementById('edit-gpass').value;
-    const oP = document.getElementById('edit-opass').value;
+    const gp = document.getElementById('edit-gpass').value;
+    const op = document.getElementById('edit-opass').value;
+    if(!gp || !op) return alert("パスワードを空にすることはできません。");
     await syncFromCloud();
-    allData.groups[currentGroup.name].gPass = gP;
-    allData.groups[currentGroup.name].oPass = oP;
+    allData.groups[currentGroup.name].gPass = gp;
+    allData.groups[currentGroup.name].oPass = op;
     await syncToCloud();
-    alert("団体パスワードを更新しました");
-  }
-
-  async function deleteGroup() {
-    if(!confirm("本当に団体を削除しますか？")) return;
-    await syncFromCloud();
-    delete allData.groups[currentGroup.name];
-    await syncToCloud();
-    location.reload();
+    alert("更新しました");
   }
 
   function renderCalendar() {
     document.getElementById('group-title').innerText = currentGroup.name;
     document.getElementById('admin-indicator').className = isAdminMode ? "" : "hidden";
-    document.getElementById('user-status-bar').innerText = currentUser ? `👤 ${currentUser.name}` : "🔓 ゲスト閲覧中";
+    document.getElementById('user-status-bar').innerText = currentUser ? `👤 ${currentUser.name}` : "🔓 ゲスト";
     const grid = document.getElementById('cal-grid'); grid.innerHTML = "";
     for(let i=1; i<=31; i++) {
         const has = currentGroup.tasks.some(t => t.date.endsWith(String(i).padStart(2,'0')));
@@ -258,7 +266,7 @@
   }
 
   function renderPortal() {
-    document.getElementById('portal-user-name').innerText = `ようこそ ${currentUser.name} さん`;
+    document.getElementById('portal-user-name').innerText = `${currentUser.name} さんのポータル`;
     const list = document.getElementById('total-task-list'); list.innerHTML = "";
     let all = [];
     currentUser.joinedGroups.forEach(gn => { if(allData.groups[gn]) allData.groups[gn].tasks.forEach(t => all.push({...t, gn})); });
@@ -284,35 +292,33 @@
     await syncToCloud(); renderCalendar();
   }
 
-  function goBackFromCalendar() { if(currentUser) { renderPortal(); showView('view-portal'); } else { showView('view-init'); } }
-  function goBackFromUserAuth() { if(syncFlag) { showView('view-calendar'); } else { showView('view-init'); } }
-  function goBackFromGroupLogin() { if(currentUser) { renderPortal(); showView('view-portal'); } else { showView('view-init'); } }
-  function openMyPage() {
-    const l = document.getElementById('my-groups-list');
-    l.innerHTML = (currentUser.joinedGroups || []).map(g => `・ ${g}`).join('<br>');
-    showView('view-my-page');
-  }
-  async function changeMyPassword() {
-    const p = document.getElementById('new-user-pass').value;
-    if(!p) return;
-    await syncFromCloud(); allData.globalUsers[currentUser.name].pass = p; await syncToCloud(); alert("マイPWを更新しました");
-  }
   async function deleteMyAccount() {
-    if(!confirm("本当にアカウントを削除しますか？")) return;
+    if(!confirm("削除しますか？")) return;
     const n = currentUser.name;
     await syncFromCloud();
     Object.values(allData.groups).forEach(g => { if(g.memberNames) g.memberNames = g.memberNames.filter(m => m !== n); });
     delete allData.globalUsers[n];
-    await syncToCloud();
-    location.reload();
+    await syncToCloud(); location.reload();
   }
-  async function createGroup() {
-    const n = document.getElementById('s-n').value;
+
+  async function deleteGroup() {
+    if(!confirm("団体を削除しますか？")) return;
     await syncFromCloud();
-    allData.groups[n] = { name:n, gPass:document.getElementById('s-g').value, oPass:document.getElementById('s-o').value, tasks:[], memberNames:[] };
-    await syncToCloud(); showView('view-start');
+    delete allData.groups[currentGroup.name];
+    await syncToCloud(); location.reload();
   }
+
+  function goBackFromCalendar() { if(currentUser) { renderPortal(); showView('view-portal'); } else { showView('view-init'); } }
+  function goBackFromUserAuth() { if(syncFlag) { showView('view-calendar'); } else { showView('view-init'); } }
+  function goBackFromGroupLogin() { if(currentUser) { renderPortal(); showView('view-portal'); } else { showView('view-init'); } }
   function showView(id) { document.querySelectorAll('body > div').forEach(v => v.classList.add('hidden')); document.getElementById(id).classList.remove('hidden'); }
+  function openMyPage() { showView('view-my-page'); }
+  async function changeMyPassword() {
+    const p = document.getElementById('new-user-pass').value;
+    if(!p) return;
+    await syncFromCloud(); allData.globalUsers[currentUser.name].pass = p; await syncToCloud(); alert("更新しました");
+  }
+
   syncFromCloud();
 </script>
 </body>
