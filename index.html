@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>共有カレンダー Pro</title>
+  <title>共有カレンダー Pro+ (カウントダウン付)</title>
   <style>
-    :root { --main: #007bff; --admin: #dc3545; --bg: #f8f9fa; --today: #e7f3ff; }
+    :root { --main: #007bff; --admin: #dc3545; --bg: #f8f9fa; --today: #e7f3ff; --accent: #ff9f43; }
     body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 10px; text-align: center; color: #333; }
     .card { background: white; padding: 15px; border-radius: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 15px; }
     input, textarea, button { width: 100%; padding: 12px; margin: 5px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; }
     .btn-submit { background: var(--main); color: white; border: none; font-weight: bold; cursor:pointer;}
     .btn-danger { background: var(--admin); color: white; border: none; font-size: 11px; padding: 4px 8px; width: auto; cursor:pointer; border-radius: 5px; }
-    .btn-google { background: #fff; color: #757575; border: 1px solid #ddd; font-size: 11px; padding: 4px 8px; width: auto; cursor:pointer; border-radius: 5px; margin-right: 5px; display: inline-flex; align-items: center; vertical-align: middle;}
+    .btn-google { background: #fff; color: #757575; border: 1px solid #ddd; font-size: 11px; padding: 4px 8px; width: auto; cursor:pointer; border-radius: 5px; margin-right: 5px; display: inline-flex; align-items: center;}
     .hidden { display: none !important; }
     
     /* カレンダー表示 */
@@ -21,11 +21,13 @@
     .cal-label { background: #f0f0f0; font-size: 11px; padding: 5px 0; font-weight: bold; }
     .cal-day { background: white; min-height: 50px; font-size: 12px; padding: 2px; position: relative; display: flex; flex-direction: column; align-items: center; }
     .cal-day.today { background: var(--today); font-weight: bold; }
-    .cal-day.other-month { color: #ccc; }
     .has-task-mark { background: #ff4757; border-radius: 50%; width: 6px; height: 6px; margin-top: 4px; }
     
-    .task { text-align: left; border-left: 5px solid var(--main); padding: 10px; background: #fff; margin-bottom: 10px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    /* 予定カードとカウントダウン */
+    .task { text-align: left; border-left: 5px solid var(--main); padding: 12px; background: #fff; margin-bottom: 10px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: relative;}
     .task-date { font-size: 11px; color: var(--main); font-weight: bold; }
+    .countdown-badge { position: absolute; top: 10px; right: 10px; background: var(--accent); color: white; font-size: 10px; padding: 3px 8px; border-radius: 20px; font-weight: bold;}
+    .countdown-urgent { background: #ee5253; } /* 3日以内は赤っぽく */
   </style>
 </head>
 <body>
@@ -66,12 +68,12 @@
 
   <div id="view-calendar" class="hidden">
     <h3 id="group-title" style="margin: 10px 0 5px 0;"></h3>
-    <div id="admin-mode-badge" class="hidden" style="color:red; font-size:11px; margin-bottom:10px;">【管理者モード：全件削除権限】</div>
+    <div id="admin-mode-badge" class="hidden" style="color:red; font-size:11px; margin-bottom:10px;">【管理者モード】</div>
     
     <div class="card" style="padding: 10px;">
       <div class="cal-header">
         <button onclick="changeMonth(-1)">◀</button>
-        <b id="current-month-display">2024年 5月</b>
+        <b id="current-month-display"></b>
         <button onclick="changeMonth(1)">▶</button>
       </div>
       <div class="cal-grid" id="cal-grid"></div>
@@ -80,12 +82,12 @@
     <div class="card">
       <h4 style="margin:0 0 10px 0; text-align:left; font-size:14px;">📅 新しい予定を追加</h4>
       <input type="date" id="t-date">
-      <input type="text" id="t-title" placeholder="予定の内容">
-      <input type="password" id="t-delpass" placeholder="削除用パスワード(任意)">
+      <input type="text" id="t-title" placeholder="予定の内容（例：英単語テスト）">
+      <input type="password" id="t-delpass" placeholder="削除用パスワード">
       <button class="btn-submit" onclick="addTask()">クラウドに同期</button>
     </div>
 
-    <div id="task-list-title" style="text-align:left; font-weight:bold; margin: 10px 5px;">表示中の予定</div>
+    <div id="task-list-title" style="text-align:left; font-weight:bold; margin: 10px 5px;">これからの予定</div>
     <div id="task-list"></div>
     
     <button onclick="location.reload()" style="background:#666; color:white; margin-top:20px;">ログアウト</button>
@@ -98,20 +100,15 @@
   let allData = {};
   let currentGroup = null;
   let isAdminMode = false;
-  let displayDate = new Date(); // 表示中の月の基準日
+  let displayDate = new Date();
 
-  // クラウド同期
   async function syncFromCloud() {
     try {
-      const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-        headers: { "X-Master-Key": API_KEY }
-      });
+      const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: { "X-Master-Key": API_KEY } });
       const json = await res.json();
       allData = json.record || {};
       document.getElementById('sync-status').innerText = "● 接続済み";
-    } catch (e) {
-      document.getElementById('sync-status').innerText = "接続エラー";
-    }
+    } catch (e) { document.getElementById('sync-status').innerText = "接続エラー"; }
   }
 
   async function syncToCloud() {
@@ -122,25 +119,21 @@
     });
   }
 
-  // 団体設立
   async function createGroup() {
     const name = document.getElementById('setup-name').value;
     const gPass = document.getElementById('setup-gpass').value;
     const oPass = document.getElementById('setup-opass').value;
     if(!name || !gPass || !oPass) return alert("全て入力してください");
     await syncFromCloud();
-    if(allData[name]) return alert("その団体名は既に存在します");
     allData[name] = { name, gPass, oPass, tasks: [] };
     await syncToCloud();
-    alert("設立完了！ログインしてください。");
+    alert("設立完了！");
     showView('view-start');
   }
 
-  // ログイン
   async function loginAction(isOpLogin) {
     const name = isOpLogin ? document.getElementById('admin-login-name').value : document.getElementById('login-name').value;
     const pass = isOpLogin ? document.getElementById('admin-login-pass').value : document.getElementById('login-pass').value;
-    
     await syncFromCloud();
     const g = allData[name];
     if(g && (isOpLogin ? g.oPass === pass : g.gPass === pass)) {
@@ -150,16 +143,14 @@
       document.getElementById('admin-mode-badge').className = isAdminMode ? "" : "hidden";
       renderCalendar();
       showView('view-calendar');
-    } else { alert("名前またはパスワードが違います"); }
+    } else { alert("間違いがあります"); }
   }
 
-  // 予定追加
   async function addTask() {
     const title = document.getElementById('t-title').value;
     const date = document.getElementById('t-date').value;
     const delPass = document.getElementById('t-delpass').value || "0000";
-    if(!title || !date) return alert("日付と内容を入力してください");
-    
+    if(!title || !date) return alert("入力してください");
     await syncFromCloud();
     allData[currentGroup.name].tasks.push({ id: Date.now(), title, date, delPass });
     await syncToCloud();
@@ -168,18 +159,27 @@
     document.getElementById('t-title').value = "";
   }
 
-  // Googleカレンダー共有リンク作成
   function getGoogleUrl(title, dateStr) {
     const d = dateStr.replace(/-/g, "");
     return `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${d}/${d}`;
   }
 
-  // 削除
+  // 残り日数を計算する関数
+  function getDiffDays(dateStr) {
+    const target = new Date(dateStr);
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    target.setHours(0,0,0,0);
+    const diffTime = target - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  }
+
   async function deleteTask(taskId) {
     const task = currentGroup.tasks.find(t => t.id === taskId);
     if(!isAdminMode) {
-      const p = prompt("この予定の削除用パスワードを入力");
-      if(p !== task.delPass) return alert("パスワード不一致");
+      const p = prompt("削除パスワード");
+      if(p !== task.delPass) return alert("不一致");
     }
     if(!confirm("削除しますか？")) return;
     await syncFromCloud();
@@ -189,46 +189,40 @@
     renderCalendar();
   }
 
-  // カレンダー描画
   function renderCalendar() {
     const year = displayDate.getFullYear();
     const month = displayDate.getMonth();
     document.getElementById('current-month-display').innerText = `${year}年 ${month + 1}月`;
-
     const grid = document.getElementById('cal-grid');
     grid.innerHTML = ['日','月','火','水','木','金','土'].map(d => `<div class="cal-label">${d}</div>`).join('');
 
     const firstDay = new Date(year, month, 1).getDay();
     const lastDate = new Date(year, month + 1, 0).getDate();
     const today = new Date();
-
-    // 空白埋め
-    for(let i=0; i<firstDay; i++) grid.innerHTML += `<div class="cal-day other-month"></div>`;
-
-    // 日付埋め
+    for(let i=0; i<firstDay; i++) grid.innerHTML += `<div class="cal-day"></div>`;
     for(let i=1; i<=lastDate; i++) {
-      const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
-      const isToday = today.getFullYear()===year && today.getMonth()===month && today.getDate()===i;
-      const hasTask = currentGroup.tasks.some(t => t.date === dateStr);
-      grid.innerHTML += `
-        <div class="cal-day ${isToday?'today':''}">
-          ${i}
-          ${hasTask ? '<div class="has-task-mark"></div>' : ''}
-        </div>`;
+      const dStr = `${year}-${String(month+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+      const hasTask = currentGroup.tasks.some(t => t.date === dStr);
+      const isT = today.getFullYear()===year && today.getMonth()===month && today.getDate()===i;
+      grid.innerHTML += `<div class="cal-day ${isT?'today':''}">${i}${hasTask?'<div class="has-task-mark"></div>':''}</div>`;
     }
 
-    // 予定リスト表示（表示中の月のみ）
     const list = document.getElementById('task-list');
     list.innerHTML = "";
-    const filteredTasks = currentGroup.tasks
-      .filter(t => t.date.startsWith(`${year}-${String(month+1).padStart(2,'0')}`))
+    // 未来（今日含む）の予定だけを表示
+    const upcomingTasks = currentGroup.tasks
+      .filter(t => getDiffDays(t.date) >= 0)
       .sort((a,b) => new Date(a.date) - new Date(b.date));
 
-    if(filteredTasks.length === 0) list.innerHTML = "<p style='color:#999; font-size:12px;'>この月の予定はありません</p>";
+    upcomingTasks.forEach(t => {
+      const diff = getDiffDays(t.date);
+      let diffText = diff === 0 ? "今日！" : `あと ${diff} 日`;
+      if (diff >= 7) diffText = "あと1週間以上";
+      const urgentClass = diff <= 3 ? "countdown-urgent" : "";
 
-    filteredTasks.forEach(t => {
       list.innerHTML += `
         <div class="task">
+          <div class="countdown-badge ${urgentClass}">${diffText}</div>
           <div class="task-date">${t.date}</div>
           <div style="margin: 5px 0;"><b>${t.title}</b></div>
           <div style="text-align:right;">
