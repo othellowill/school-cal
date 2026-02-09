@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>共有カレンダー Pro+ (カウントダウン付)</title>
+  <title>共有カレンダー Pro+ (日付選択機能付)</title>
   <style>
-    :root { --main: #007bff; --admin: #dc3545; --bg: #f8f9fa; --today: #e7f3ff; --accent: #ff9f43; }
+    :root { --main: #007bff; --admin: #dc3545; --bg: #f8f9fa; --today: #e7f3ff; --accent: #ff9f43; --selected: #007bff; }
     body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 10px; text-align: center; color: #333; }
     .card { background: white; padding: 15px; border-radius: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 15px; }
     input, textarea, button { width: 100%; padding: 12px; margin: 5px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; }
@@ -14,20 +14,20 @@
     .btn-google { background: #fff; color: #757575; border: 1px solid #ddd; font-size: 11px; padding: 4px 8px; width: auto; cursor:pointer; border-radius: 5px; margin-right: 5px; display: inline-flex; align-items: center;}
     .hidden { display: none !important; }
     
-    /* カレンダー表示 */
     .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
     .cal-header button { width: auto; padding: 5px 15px; background: #eee; border: none; }
     .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ddd; border: 1px solid #ddd; }
     .cal-label { background: #f0f0f0; font-size: 11px; padding: 5px 0; font-weight: bold; }
-    .cal-day { background: white; min-height: 50px; font-size: 12px; padding: 2px; position: relative; display: flex; flex-direction: column; align-items: center; }
+    .cal-day { background: white; min-height: 50px; font-size: 12px; padding: 2px; position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: 0.2s; }
+    .cal-day:active { background: #eee; }
     .cal-day.today { background: var(--today); font-weight: bold; }
+    .cal-day.selected { border: 2px solid var(--selected); z-index: 10; box-sizing: border-box; background: #f0f7ff; }
     .has-task-mark { background: #ff4757; border-radius: 50%; width: 6px; height: 6px; margin-top: 4px; }
     
-    /* 予定カードとカウントダウン */
     .task { text-align: left; border-left: 5px solid var(--main); padding: 12px; background: #fff; margin-bottom: 10px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: relative;}
     .task-date { font-size: 11px; color: var(--main); font-weight: bold; }
     .countdown-badge { position: absolute; top: 10px; right: 10px; background: var(--accent); color: white; font-size: 10px; padding: 3px 8px; border-radius: 20px; font-weight: bold;}
-    .countdown-urgent { background: #ee5253; } /* 3日以内は赤っぽく */
+    .countdown-urgent { background: #ee5253; }
   </style>
 </head>
 <body>
@@ -77,12 +77,13 @@
         <button onclick="changeMonth(1)">▶</button>
       </div>
       <div class="cal-grid" id="cal-grid"></div>
+      <button id="btn-show-all" onclick="clearSelection()" style="margin-top:10px; font-size:12px; background:#eee; border:none; padding:8px; border-radius:5px; width:auto; display:none;">← 全ての予定を表示</button>
     </div>
 
     <div class="card">
       <h4 style="margin:0 0 10px 0; text-align:left; font-size:14px;">📅 新しい予定を追加</h4>
       <input type="date" id="t-date">
-      <input type="text" id="t-title" placeholder="予定の内容（例：英単語テスト）">
+      <input type="text" id="t-title" placeholder="予定の内容">
       <input type="password" id="t-delpass" placeholder="削除用パスワード">
       <button class="btn-submit" onclick="addTask()">クラウドに同期</button>
     </div>
@@ -101,6 +102,7 @@
   let currentGroup = null;
   let isAdminMode = false;
   let displayDate = new Date();
+  let selectedDateStr = null; // 選択された日付
 
   async function syncFromCloud() {
     try {
@@ -164,15 +166,13 @@
     return `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${d}/${d}`;
   }
 
-  // 残り日数を計算する関数
   function getDiffDays(dateStr) {
     const target = new Date(dateStr);
     const today = new Date();
     today.setHours(0,0,0,0);
     target.setHours(0,0,0,0);
     const diffTime = target - today;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   }
 
   async function deleteTask(taskId) {
@@ -189,6 +189,19 @@
     renderCalendar();
   }
 
+  function selectDate(dStr) {
+    selectedDateStr = dStr;
+    document.getElementById('btn-show-all').style.display = "inline-block";
+    document.getElementById('t-date').value = dStr; // 予定追加の日付も自動セット
+    renderCalendar();
+  }
+
+  function clearSelection() {
+    selectedDateStr = null;
+    document.getElementById('btn-show-all').style.display = "none";
+    renderCalendar();
+  }
+
   function renderCalendar() {
     const year = displayDate.getFullYear();
     const month = displayDate.getMonth();
@@ -199,26 +212,40 @@
     const firstDay = new Date(year, month, 1).getDay();
     const lastDate = new Date(year, month + 1, 0).getDate();
     const today = new Date();
+    
     for(let i=0; i<firstDay; i++) grid.innerHTML += `<div class="cal-day"></div>`;
+    
     for(let i=1; i<=lastDate; i++) {
       const dStr = `${year}-${String(month+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
       const hasTask = currentGroup.tasks.some(t => t.date === dStr);
       const isT = today.getFullYear()===year && today.getMonth()===month && today.getDate()===i;
-      grid.innerHTML += `<div class="cal-day ${isT?'today':''}">${i}${hasTask?'<div class="has-task-mark"></div>':''}</div>`;
+      const isS = selectedDateStr === dStr;
+      grid.innerHTML += `<div class="cal-day ${isT?'today':''} ${isS?'selected':''}" onclick="selectDate('${dStr}')">${i}${hasTask?'<div class="has-task-mark"></div>':''}</div>`;
     }
 
     const list = document.getElementById('task-list');
     list.innerHTML = "";
-    // 未来（今日含む）の予定だけを表示
-    const upcomingTasks = currentGroup.tasks
-      .filter(t => getDiffDays(t.date) >= 0)
-      .sort((a,b) => new Date(a.date) - new Date(b.date));
+    
+    // 絞り込みロジック
+    let tasksToShow = currentGroup.tasks;
+    if (selectedDateStr) {
+      document.getElementById('task-list-title').innerText = `${selectedDateStr} の予定`;
+      tasksToShow = tasksToShow.filter(t => t.date === selectedDateStr);
+    } else {
+      document.getElementById('task-list-title').innerText = "これからの予定";
+      tasksToShow = tasksToShow.filter(t => getDiffDays(t.date) >= 0);
+    }
+    
+    tasksToShow.sort((a,b) => new Date(a.date) - new Date(b.date));
 
-    upcomingTasks.forEach(t => {
+    if(tasksToShow.length === 0) {
+      list.innerHTML = "<p style='color:#999; font-size:12px;'>予定はありません</p>";
+    }
+
+    tasksToShow.forEach(t => {
       const diff = getDiffDays(t.date);
-      let diffText = diff === 0 ? "今日！" : `あと ${diff} 日`;
-      if (diff >= 7) diffText = "あと1週間以上";
-      const urgentClass = diff <= 3 ? "countdown-urgent" : "";
+      let diffText = diff === 0 ? "今日！" : (diff < 0 ? "終了" : `あと ${diff} 日`);
+      const urgentClass = (diff >= 0 && diff <= 3) ? "countdown-urgent" : "";
 
       list.innerHTML += `
         <div class="task">
@@ -235,6 +262,7 @@
 
   function changeMonth(diff) {
     displayDate.setMonth(displayDate.getMonth() + diff);
+    selectedDateStr = null; // 月を変えたら選択解除
     renderCalendar();
   }
 
