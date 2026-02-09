@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>共有カレンダー Sync Pro</title>
+  <title>共有カレンダー Portal Final</title>
   <style>
     :root { --main: #007bff; --admin: #dc3545; --bg: #f8f9fa; --today: #e7f3ff; --accent: #ff9f43; --success: #28a745; --selected: #007bff; }
     body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 0; text-align: center; color: #333; padding-bottom: 50px; }
@@ -14,24 +14,15 @@
     .btn-danger { background: var(--admin); color: white; border: none; font-size: 11px; padding: 4px 8px; width: auto; border-radius: 5px; cursor:pointer; }
     .hidden { display: none !important; }
     
+    /* 共通UI */
     .nav-bar { display: flex; justify-content: space-around; background: white; padding: 10px 0; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
     .nav-item { font-size: 12px; cursor: pointer; color: #666; font-weight: bold; flex: 1; }
     .nav-active { color: var(--main); border-bottom: 2px solid var(--main); }
-
-    .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-    .cal-header button { width: auto; padding: 5px 15px; background: #eee; border: none; }
     .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #ddd; border: 1px solid #ddd; }
-    .cal-label { background: #f0f0f0; font-size: 11px; padding: 5px 0; font-weight: bold; }
-    .cal-day { background: white; min-height: 50px; font-size: 12px; padding: 2px; position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
+    .cal-day { background: white; min-height: 50px; font-size: 12px; padding: 2px; position: relative; cursor: pointer; }
     .cal-day.today { background: var(--today); font-weight: bold; }
-    .cal-day.selected { border: 2px solid var(--selected); background: #f0f7ff; z-index: 5; box-sizing: border-box; }
-    .mark { background: #ff4757; border-radius: 50%; width: 6px; height: 6px; margin-top: 4px; }
-    
-    .task { text-align: left; border-left: 5px solid var(--main); padding: 12px; background: #fff; margin: 10px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: relative; }
-    .task.done { opacity: 0.6; border-left-color: var(--success); background: #f0fdf4; }
-    .task.done b { text-decoration: line-through; color: #888; }
-    .check-mark { position: absolute; top: 10px; right: 10px; font-weight: bold; color: var(--success); }
-    .group-tag { font-size: 10px; background: #eee; padding: 2px 5px; border-radius: 3px; color: #666; margin-bottom: 4px; display: inline-block; }
+    .task { text-align: left; border-left: 5px solid var(--main); padding: 12px; background: #fff; margin: 10px; border-radius: 5px; position: relative; }
+    .task.done { opacity: 0.6; border-left-color: var(--success); text-decoration: line-through; }
   </style>
 </head>
 <body>
@@ -39,7 +30,7 @@
   <div id="view-init">
     <h2 style="margin-top:50px;">🏫 カレンダーポータル</h2>
     <div class="card">
-      <button class="btn-submit" onclick="showView('view-user-auth')">個人アカウントで利用</button>
+      <button class="btn-submit" onclick="goToAuth(false)">個人アカウントで利用</button>
       <button class="btn-outline" onclick="showView('view-start')">ゲスト / 団体ログイン</button>
     </div>
   </div>
@@ -47,71 +38,65 @@
   <div id="view-user-auth" class="hidden">
     <h3>👤 個人アカウント</h3>
     <div class="card">
-      <p id="sync-notice" style="font-size:12px; color:var(--accent);" class="hidden">※ログインすると現在の団体が同期されます</p>
-      <input type="text" id="user-acc-name" placeholder="お名前">
-      <input type="password" id="user-acc-pass" placeholder="パスワード(生年月日等)">
-      <button class="btn-submit" onclick="userLoginAction()">ログイン / アカウント作成</button>
+      <p id="sync-notice" style="font-size:12px; color:var(--accent);" class="hidden">※現在の団体をあなたのアカウントに登録します</p>
+      <div style="display:flex; gap:5px;">
+        <input type="text" id="user-acc-name" placeholder="お名前">
+        <button onclick="suggestName()" style="width:50px; background:#eee;">✨</button>
+      </div>
+      <input type="password" id="user-acc-pass" placeholder="パスワード">
+      <button class="btn-submit" id="auth-main-btn" onclick="userLoginAction()">ログイン / アカウント作成</button>
     </div>
     <button onclick="goBackFromUserAuth()">戻る</button>
   </div>
 
   <div id="view-portal" class="hidden">
     <div class="nav-bar">
-      <div id="nav-home" class="nav-item nav-active" onclick="renderPortal()">🏠 総合表</div>
-      <div id="nav-switch" class="nav-item" onclick="showView('view-start')">👥 団体追加</div>
-      <div id="nav-me" class="nav-item" onclick="openMyPage()">👤 マイページ</div>
+      <div class="nav-item nav-active" onclick="renderPortal()">🏠 総合表</div>
+      <div class="nav-item" onclick="showView('view-start')">👥 団体追加</div>
+      <div class="nav-item" onclick="openMyPage()">👤 設定</div>
     </div>
     <h3 id="portal-user-name" style="margin:15px 0 5px;"></h3>
     <div id="total-task-list"></div>
     <button onclick="location.reload()" style="color:red; background:none; border:none; margin-top:30px;">ログアウト</button>
   </div>
 
-  <div id="view-start" class="hidden">
-    <h3>団体ログイン</h3>
-    <div class="card">
-      <input type="text" id="login-group-name" placeholder="団体名">
-      <input type="password" id="login-group-pass" placeholder="団体パスワード">
-      <button class="btn-submit" onclick="groupLoginAction(false)">この団体に入る</button>
-    </div>
-    <div style="font-size:12px;">
-        <button onclick="showView('view-setup')" style="width:auto; background:none; border:none; color:var(--main);">新規団体設立</button> | 
-        <button onclick="showView('view-admin-login')" style="width:auto; background:none; border:none; color:var(--admin);">管理者入口</button>
-    </div>
-    <button onclick="goBackFromGroupLogin()" style="margin-top:20px;">戻る</button>
-  </div>
-
   <div id="view-calendar" class="hidden">
-    <h3 id="group-title" style="margin:10px 0 0;"></h3>
+    <h3 id="group-title"></h3>
     <div id="user-status-bar" style="font-size:11px; margin-bottom:5px;"></div>
-    
     <div class="card">
-      <div class="cal-header">
-        <button onclick="changeMonth(-1)">◀</button>
-        <b id="cal-month-display"></b>
-        <button onclick="changeMonth(1)">▶</button>
-      </div>
-      <div id="cal-grid" class="cal-grid"></div>
-      <button id="btn-show-all" class="hidden" onclick="clearSelection()" style="margin-top:10px; font-size:11px; border:none; background:#eee; padding:5px; border-radius:5px;">← 全表示</button>
+        <div id="cal-grid" class="cal-grid"></div>
     </div>
-    
     <div class="card">
       <input type="date" id="t-date">
       <input type="text" id="t-title" placeholder="予定の内容">
-      <button class="btn-submit" onclick="addTask()">保存</button>
+      <button class="btn-submit" onclick="addTask()">クラウドに保存</button>
     </div>
     <div id="task-list"></div>
-    
-    <div id="guest-sync-btn" class="hidden" style="margin:10px;">
-        <button class="btn-outline" onclick="showUserAuthWithSync()">👤 この団体を自分のアカウントに同期する</button>
-    </div>
-    
     <button onclick="goBackFromCalendar()" class="btn-outline">戻る</button>
   </div>
 
-  <div id="view-my-page" class="hidden"><h3>👤 マイページ</h3><div class="card"><h4>PW変更</h4><input type="text" id="new-user-pass"><button onclick="changeMyPassword()">保存</button></div><div class="card"><h4>所属</h4><div id="my-groups-list"></div></div><button onclick="showView('view-portal')">戻る</button></div>
-  <div id="view-admin-settings" class="hidden"><h3>⚙️ 管理</h3><div class="card"><h4>PW更新</h4><input type="text" id="edit-gpass"><input type="text" id="edit-opass"><button onclick="updateGroupPasswords()">更新</button></div><button onclick="showView('view-calendar')">戻る</button></div>
-  <div id="view-setup" class="hidden"><h3>団体設立</h3><div class="card"><input type="text" id="s-n" placeholder="名"><input type="password" id="s-g" placeholder="メPW"><input type="password" id="s-o" placeholder="管PW"><button onclick="createGroup()">設立</button></div><button onclick="showView('view-start')">戻る</button></div>
-  <div id="view-admin-login" class="hidden"><h3>管理者ログイン</h3><div class="card"><input type="text" id="al-n" placeholder="名"><input type="password" id="al-p" placeholder="PW"><button onclick="groupLoginAction(true)">ログイン</button></div><button onclick="showView('view-start')">戻る</button></div>
+  <div id="view-my-page" class="hidden">
+    <h3>👤 アカウント設定</h3>
+    <div class="card">
+      <h4>パスワード変更</h4>
+      <input type="text" id="new-user-pass" placeholder="新しいPW">
+      <button class="btn-submit" onclick="changeMyPassword()">変更</button>
+    </div>
+    <div class="card" style="text-align:left;">
+      <h4>所属団体</h4>
+      <div id="my-groups-list"></div>
+    </div>
+    <div class="card" style="border:1px solid red; margin-top:30px;">
+      <h4 style="color:red;">アカウントの削除</h4>
+      <p style="font-size:11px;">※一度削除すると復元できません。</p>
+      <button class="btn-danger" style="width:100%;" onclick="deleteMyAccount()">アカウントを完全に削除</button>
+    </div>
+    <button onclick="showView('view-portal')">戻る</button>
+  </div>
+
+  <div id="view-start" class="hidden"><h3>団体ログイン</h3><div class="card"><input type="text" id="login-group-name" placeholder="団体名"><input type="password" id="login-group-pass" placeholder="PW"><button class="btn-submit" onclick="groupLoginAction(false)">入る</button></div><button onclick="showView('view-setup')">設立</button> | <button onclick="showView('view-admin-login')">管理者</button><br><button onclick="goBackFromGroupLogin()">戻る</button></div>
+  <div id="view-setup" class="hidden"><h3>団体設立</h3><div class="card"><input type="text" id="s-n" placeholder="団体名"><input type="password" id="s-g" placeholder="メPW"><input type="password" id="s-o" placeholder="管PW"><button class="btn-submit" onclick="createGroup()">設立</button></div><button onclick="showView('view-start')">戻る</button></div>
+  <div id="view-admin-login" class="hidden"><h3>管理者</h3><div class="card"><input type="text" id="al-n"><input type="password" id="al-p"><button class="btn-submit" onclick="groupLoginAction(true)">ログイン</button></div><button onclick="showView('view-start')">戻る</button></div>
 
 <script>
   const BIN_ID = "6989dd4bae596e708f1d842e";
@@ -120,9 +105,7 @@
   let allData = { groups: {}, globalUsers: {} };
   let currentGroup = null;
   let currentUser = null;
-  let displayDate = new Date();
-  let selectedDateStr = null;
-  let syncTargetGroup = null; // 同期待機用
+  let syncFlag = false;
 
   async function syncFromCloud() {
     const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: { "X-Master-Key": API_KEY } });
@@ -138,43 +121,116 @@
     });
   }
 
-  // 同期フラグを立てて認証画面へ
-  function showUserAuthWithSync() {
-    syncTargetGroup = currentGroup.name;
-    document.getElementById('sync-notice').classList.remove('hidden');
+  // --- 名前提案ロジック ---
+  function suggestName() {
+    const adj = ["青い", "元気な", "のんびり", "光の", "空飛ぶ", "ミラクル"];
+    const noun = ["リス", "スター", "カレンダー", "ライオン", "ノート", "ランナー"];
+    const num = Math.floor(Math.random() * 900) + 100;
+    const res = adj[Math.floor(Math.random()*adj.length)] + noun[Math.floor(Math.random()*noun.length)] + num;
+    document.getElementById('user-acc-name').value = res;
+  }
+
+  // --- バグ修正版：認証移行 ---
+  function goToAuth(isSync) {
+    syncFlag = isSync;
+    document.getElementById('sync-notice').className = syncFlag ? "" : "hidden";
     showView('view-user-auth');
   }
 
-  // 個人ログイン & 同期処理
   async function userLoginAction() {
-    const name = document.getElementById('user-acc-name').value;
-    const pass = document.getElementById('user-acc-pass').value;
-    if(!name || !pass) return alert("入力してください");
+    const n = document.getElementById('user-acc-name').value;
+    const p = document.getElementById('user-acc-pass').value;
+    if(!n || !p) return alert("入力して下さい");
     await syncFromCloud();
 
-    if(!allData.globalUsers[name]) {
-      if(confirm("新規作成しますか？")) {
-        allData.globalUsers[name] = { name, pass, joinedGroups: [] };
+    if(!allData.globalUsers[n]) {
+      if(confirm("アカウントを新規作成しますか？")) {
+        allData.globalUsers[n] = { name: n, pass: p, joinedGroups: [] };
       } else return;
-    } else if(allData.globalUsers[name].pass !== pass) return alert("PW不一致");
+    } else if(allData.globalUsers[n].pass !== p) return alert("パスワードが違います");
 
-    currentUser = allData.globalUsers[name];
-
-    // ★ 同期ロジック：ゲスト中に開いていた団体があれば追加
-    if(syncTargetGroup && !currentUser.joinedGroups.includes(syncTargetGroup)) {
-      currentUser.joinedGroups.push(syncTargetGroup);
-      const g = allData.groups[syncTargetGroup];
-      if(g) {
-        if(!g.memberNames) g.memberNames = [];
-        if(!g.memberNames.includes(currentUser.name)) g.memberNames.push(currentUser.name);
+    currentUser = allData.globalUsers[n];
+    if(syncFlag && currentGroup) {
+      if(!currentUser.joinedGroups.includes(currentGroup.name)) {
+        currentUser.joinedGroups.push(currentGroup.name);
+        if(!allData.groups[currentGroup.name].memberNames) allData.groups[currentGroup.name].memberNames = [];
+        allData.groups[currentGroup.name].memberNames.push(n);
       }
-      alert(`${syncTargetGroup} をあなたのアカウントに同期しました！`);
-      syncTargetGroup = null;
+      syncFlag = false;
     }
-    
     await syncToCloud();
     renderPortal();
     showView('view-portal');
+  }
+
+  // --- アカウント削除 ---
+  async function deleteMyAccount() {
+    if(!confirm("本当にアカウントを削除しますか？全てのデータが消えます。")) return;
+    const name = currentUser.name;
+    await syncFromCloud();
+    // 全団体から名前を削除
+    Object.values(allData.groups).forEach(g => {
+      if(g.memberNames) g.memberNames = g.memberNames.filter(m => m !== name);
+    });
+    delete allData.globalUsers[name];
+    await syncToCloud();
+    alert("アカウントを削除しました。");
+    location.reload();
+  }
+
+  // --- UI制御 ---
+  function goBackFromCalendar() {
+    if(currentUser) { renderPortal(); showView('view-portal'); } else { showView('view-init'); }
+  }
+  function goBackFromUserAuth() {
+    if(syncFlag) { showView('view-calendar'); } else { showView('view-init'); }
+  }
+  function goBackFromGroupLogin() {
+    if(currentUser) { renderPortal(); showView('view-portal'); } else { showView('view-init'); }
+  }
+
+  // --- 描画ロジック ---
+  function renderCalendar() {
+    const gn = currentGroup.name;
+    document.getElementById('group-title').innerText = gn;
+    document.getElementById('user-status-bar').innerText = currentUser ? `👤 ${currentUser.name}` : "🔓 ゲスト";
+    const grid = document.getElementById('cal-grid'); grid.innerHTML = "";
+    for(let i=1; i<=31; i++) {
+        const has = allData.groups[gn].tasks.some(t => t.date.endsWith(String(i).padStart(2,'0')));
+        grid.innerHTML += `<div class="cal-day">${i}${has?'<div style="background:red;width:5px;height:5px;border-radius:50%;margin:auto;"></div>':''}</div>`;
+    }
+    renderTaskList();
+  }
+
+  function renderTaskList() {
+    const list = document.getElementById('task-list'); list.innerHTML = "";
+    allData.groups[currentGroup.name].tasks.forEach(t => {
+      const isD = JSON.parse(localStorage.getItem(`done_${currentUser?.name||'g'}`) || "[]").includes(String(t.id));
+      list.innerHTML += `<div class="task ${isD?'done':''}" onclick="toggleDone('${t.id}')"><b>${t.title}</b><br><small>${t.date}</small></div>`;
+    });
+    // ゲスト用ボタン
+    if(!currentUser) {
+      list.innerHTML += `<button class="btn-outline" onclick="goToAuth(true)">この団体を自分のアカウントに同期</button>`;
+    }
+  }
+
+  function renderPortal() {
+    document.getElementById('portal-user-name').innerText = `ようこそ ${currentUser.name} さん`;
+    const list = document.getElementById('total-task-list'); list.innerHTML = "";
+    let all = [];
+    currentUser.joinedGroups.forEach(gn => { if(allData.groups[gn]) allData.groups[gn].tasks.forEach(t => all.push({...t, gn})); });
+    all.sort((a,b)=>new Date(a.date)-new Date(b.date)).forEach(t => {
+      const isD = JSON.parse(localStorage.getItem(`done_${currentUser.name}`) || "[]").includes(String(t.id));
+      list.innerHTML += `<div class="task ${isD?'done':''}" onclick="toggleDone('${t.id}')"><b>[${t.gn}] ${t.title}</b><br><small>${t.date}</small></div>`;
+    });
+  }
+
+  function toggleDone(id) {
+    if(!currentUser) return alert("ログインが必要です");
+    let l = JSON.parse(localStorage.getItem(`done_${currentUser.name}`) || "[]");
+    l = l.includes(id) ? l.filter(i=>i!==id) : [...l, id];
+    localStorage.setItem(`done_${currentUser.name}`, JSON.stringify(l));
+    if(!document.getElementById('view-portal').classList.contains('hidden')) renderPortal(); else renderCalendar();
   }
 
   async function groupLoginAction(isOp) {
@@ -186,84 +242,36 @@
       currentGroup = g;
       if(currentUser && !currentUser.joinedGroups.includes(gn)) {
         currentUser.joinedGroups.push(gn);
-        allData.globalUsers[currentUser.name].joinedGroups = currentUser.joinedGroups;
         if(!g.memberNames) g.memberNames = [];
         g.memberNames.push(currentUser.name);
         await syncToCloud();
       }
-      renderCalendar();
-      showView('view-calendar');
+      renderCalendar(); showView('view-calendar');
     } else alert("認証エラー");
   }
 
-  function renderCalendar() {
-    const bar = document.getElementById('user-status-bar');
-    bar.innerHTML = currentUser ? `👤 ${currentUser.name} で同期中` : `🔓 ゲスト閲覧中`;
-    document.getElementById('guest-sync-btn').className = currentUser ? "hidden" : "";
-    
-    const year = displayDate.getFullYear(), month = displayDate.getMonth();
-    document.getElementById('cal-month-display').innerText = `${year}年 ${month + 1}月`;
-    const grid = document.getElementById('cal-grid'); grid.innerHTML = "";
-    const first = new Date(year, month, 1).getDay();
-    const last = new Date(year, month + 1, 0).getDate();
-    for(let i=0; i<first; i++) grid.innerHTML += `<div></div>`;
-    for(let i=1; i<=last; i++) {
-      const d = `${year}-${String(month+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
-      const has = currentGroup.tasks.some(t => t.date === d);
-      grid.innerHTML += `<div class="cal-day ${selectedDateStr===d?'selected':''}" onclick="selectDate('${d}')">${i}${has?'<div class="mark"></div>':''}</div>`;
-    }
-    renderTaskList();
-  }
-
-  function renderTaskList() {
-    const list = document.getElementById('task-list'); list.innerHTML = "";
-    let tasks = currentGroup.tasks.filter(t => selectedDateStr ? t.date === selectedDateStr : true);
-    tasks.sort((a,b) => new Date(a.date) - new Date(b.date));
-    tasks.forEach(t => {
-      const isDone = JSON.parse(localStorage.getItem(`done_${currentUser?.name || 'guest'}`) || "[]").includes(String(t.id));
-      list.innerHTML += `<div class="task ${isDone?'done':''}" onclick="toggleDone('${t.id}')">
-        ${isDone?'<span class="check-mark">✓</span>':''}
-        <small>${t.date}</small><br><b>${t.title}</b>
-      </div>`;
-    });
-  }
-
-  function renderPortal() {
-    document.getElementById('portal-user-name').innerText = `👤 ${currentUser.name} さんの予定`;
-    const list = document.getElementById('total-task-list'); list.innerHTML = "";
-    let all = [];
-    currentUser.joinedGroups.forEach(gn => { if(allData.groups[gn]) allData.groups[gn].tasks.forEach(t => all.push({...t, gn})); });
-    all.sort((a,b) => new Date(a.date) - new Date(b.date)).forEach(t => {
-      const isDone = JSON.parse(localStorage.getItem(`done_${currentUser.name}`) || "[]").includes(String(t.id));
-      list.innerHTML += `<div class="task ${isDone?'done':''}" onclick="toggleDone('${t.id}')">
-        <span class="group-tag">${t.gn}</span><br><b>${t.title}</b>
-      </div>`;
-    });
-  }
-
-  function goBackFromCalendar() { showView(currentUser ? 'view-portal' : 'view-init'); }
-  function goBackFromUserAuth() { 
-    document.getElementById('sync-notice').classList.add('hidden');
-    showView(currentGroup ? 'view-calendar' : 'view-init'); 
-  }
-  function goBackFromGroupLogin() { showView(currentUser ? 'view-portal' : 'view-init'); }
-  function selectDate(d) { selectedDateStr = d; document.getElementById('btn-show-all').classList.remove('hidden'); renderCalendar(); }
-  function clearSelection() { selectedDateStr = null; document.getElementById('btn-show-all').classList.add('hidden'); renderCalendar(); }
-  function changeMonth(n) { displayDate.setMonth(displayDate.getMonth() + n); renderCalendar(); }
-  function showView(id) { document.querySelectorAll('body > div').forEach(v => v.classList.add('hidden')); document.getElementById(id).classList.remove('hidden'); }
   async function addTask() {
     const t = document.getElementById('t-title').value, d = document.getElementById('t-date').value;
     if(!t || !d) return;
-    await syncFromCloud(); allData.groups[currentGroup.name].tasks.push({id: Date.now(), title: t, date: d});
+    await syncFromCloud();
+    allData.groups[currentGroup.name].tasks.push({id: Date.now(), title: t, date: d});
     await syncToCloud(); renderCalendar();
   }
-  function toggleDone(id) {
-    if(!currentUser) return alert("ログインが必要です");
-    let l = JSON.parse(localStorage.getItem(`done_${currentUser.name}`) || "[]");
-    l = l.includes(id) ? l.filter(i => i !== id) : [...l, id];
-    localStorage.setItem(`done_${currentUser.name}`, JSON.stringify(l));
-    if(!document.getElementById('view-portal').classList.contains('hidden')) renderPortal(); else renderCalendar();
+  
+  function openMyPage() {
+    const l = document.getElementById('my-groups-list');
+    l.innerHTML = (currentUser.joinedGroups || []).map(g => `・ ${g}`).join('<br>');
+    showView('view-my-page');
   }
+
+  async function createGroup() {
+    const n = document.getElementById('s-n').value;
+    await syncFromCloud();
+    allData.groups[n] = { name:n, gPass:document.getElementById('s-g').value, oPass:document.getElementById('s-o').value, tasks:[], memberNames:[] };
+    await syncToCloud(); showView('view-start');
+  }
+
+  function showView(id) { document.querySelectorAll('body > div').forEach(v => v.classList.add('hidden')); document.getElementById(id).classList.remove('hidden'); }
   syncFromCloud();
 </script>
 </body>
